@@ -312,7 +312,47 @@ export class Field {
     this.controls.update();
     this.resize();
   }
+  // Keep the selected frustum throughout the animation, including window resizes.
+  startCapture(width, height) {
+    const gl = this.renderer.getContext();
+    const limit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+    if (width > limit || height > limit) {
+      throw new Error(
+        'This image exceeds the graphics device limit. Choose a smaller width.',
+      );
+    }
+    // Supersample small and medium frames. Bound multisample GPU memory at large widths.
+    const scale = Math.max(
+      1,
+      Math.min(
+        2,
+        limit / Math.max(width, height),
+        Math.sqrt(6_000_000 / (width * height)),
+      ),
+    );
+    this.capturePixelRatio = this.renderer.getPixelRatio();
+    this.renderer.setDrawingBufferSize(width, height, scale);
+    if (gl.drawingBufferWidth < width || gl.drawingBufferHeight < height) {
+      throw new Error(
+        'The graphics device could not render this image size. Choose a smaller width.',
+      );
+    }
+  }
+
+  endCapture() {
+    if (this.capturePixelRatio === undefined) return;
+    const ratio = this.capturePixelRatio;
+    this.capturePixelRatio = undefined;
+    this.renderer.setDrawingBufferSize(
+      this.host.clientWidth,
+      this.host.clientHeight,
+      ratio,
+    );
+    this.resize();
+  }
+
   resize() {
+    if (this.capturePixelRatio !== undefined) return;
     const w = this.host.clientWidth,
       h = this.host.clientHeight;
     if (!w || !h) return;

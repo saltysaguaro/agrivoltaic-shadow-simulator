@@ -20,7 +20,7 @@ Open the local URL printed by Vite. Run `npm test` for model checks and `npm run
 1. In **System**, choose fixed tilt, single-axis tracking, dual-axis tracking, vertical bifacial, or a raised pergola. Set module dimensions, cell construction, axis height, post width, table orientation, modules per table, pitch, row grouping, aisles, and azimuth. The tracker settings include rotation limits and single-axis backtracking. Pergola rows can be aligned or staggered.
 2. In **Site & day**, enter the latitude, longitude, date, and UTC offset for that date. Longitude is positive east. For example, Tucson uses UTC−7 year-round. The timeline covers the first through last above-horizon minute on that local date.
 3. Switch between **3D**, **Plan**, and **Profile**. Drag to orbit, right-drag to pan, and scroll or pinch to zoom. The reset button fits the array to the selected preset. Scrub the timeline or select **Play day**.
-4. Select **Export GIF**, then choose the simulated time between frames, output width, and playback frame rate. The looping animation uses the current camera and includes the local date, time, UTC offset, and coordinates. Near-horizon shadows can extend outside the current view.
+4. Select **Export GIF**, then choose the simulated time between frames, output width, and playback frame rate. Frames render at the selected width (up to 3840 px), independently of the preview size. Each frame keeps its original colors when they fit in a GIF palette, or uses up to 256 representative colors. The looping animation uses the current camera and includes the local date, time, UTC offset, and coordinates. Near-horizon shadows can extend outside the current view.
 
 ## Publish on GitHub Pages
 
