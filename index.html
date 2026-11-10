@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#193e32" />
+    <meta
+      name="description"
+      content="Design an agrivoltaic array, explore its shadows through a single day, and export a looping GIF."
+    />
+    <title>Agrivoltaic Shadow Simulator</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='8' fill='%231b4536'/%3E%3Ccircle cx='28' cy='11' r='4' fill='%23e1ba68'/%3E%3Cpath d='M10 17h20l-5 10H5zm7 10-2 5' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="mast">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"
+          ><svg viewBox="0 0 44 44">
+            <circle cx="32" cy="11" r="4" fill="#edc276" />
+            <path
+              d="M10 17h24l-6 12H4zm8 0-6 12m14-12-6 12M7 23h24m-13 6-2 5m-5 0h12"
+              stroke="#faf8eb"
+              fill="none"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            /></svg
+        ></span>
+        <div>
+          <span class="brandline">AGRIVOLTAIC DESIGN</span>
+          <h1>Shadow simulator</h1>
+        </div>
+      </div>
+      <button class="primary" id="export">
+        <i data-icon="download"></i>Export GIF
+      </button>
+    </header>
+    <main>
+      <aside class="settings card">
+        <div class="side-title">
+          <i data-icon="sliders"></i>
+          <h2>Configuration</h2>
+        </div>
+        <div class="tabs">
+          <button id="system-tab" aria-pressed="true">
+            <i data-icon="panels"></i> System</button
+          ><button id="site-tab" aria-pressed="false">
+            <i data-icon="pin"></i> Site &amp; day
+          </button>
+        </div>
+        <div id="fields"></div>
+        <p class="notice" id="notice" role="status"></p>
+      </aside>
+      <div class="workspace">
+        <section class="card viewer">
+          <div class="viewer-head">
+            <div class="heading">
+              <i data-icon="cube"></i>
+              <h2>Array view</h2>
+            </div>
+            <div class="views" aria-label="Camera presets">
+              <button data-view="3d" aria-pressed="true">3D</button
+              ><button data-view="plan" aria-pressed="false">Plan</button
+              ><button data-view="profile" aria-pressed="false">Profile</button>
+            </div>
+          </div>
+          <div class="field" id="field">
+            <div class="readout">
+              <span class="sun-symbol" aria-hidden="true">☼</span>
+              <div><b id="scene-time"></b><small id="scene-date"></small></div>
+            </div>
+            <div class="compass" aria-label="North direction">
+              <b>N</b><span></span>
+            </div>
+            <div class="legend">
+              <span><i class="swatch pv"></i>PV module</span
+              ><span><i class="swatch shade"></i>Ground shadow</span>
+            </div>
+            <button
+              id="fit"
+              class="fit"
+              aria-label="Reset camera"
+              title="Reset camera"
+            >
+              <i data-icon="fit"></i>
+            </button>
+            <div hidden id="render-error" role="alert"></div>
+          </div>
+          <div class="stats">
+            <div><small>Modules</small><strong id="modules"></strong></div>
+            <div><small>DC capacity</small><strong id="capacity"></strong></div>
+            <div>
+              <small>Sun elevation</small><strong id="elevation"></strong>
+            </div>
+            <div><small>Sun azimuth</small><strong id="azimuth"></strong></div>
+          </div>
+        </section>
+        <section class="card timeline">
+          <div class="time-head">
+            <div class="heading">
+              <i data-icon="sun"></i>
+              <h2>Day timeline</h2>
+            </div>
+            <div class="play-controls">
+              <label class="sr-only" for="speed">Playback speed</label
+              ><select id="speed">
+                <option value=".5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+                <option value="4">4×</option></select
+              ><button id="play">
+                <i data-icon="play"></i><span>Play day</span>
+              </button>
+            </div>
+          </div>
+          <div class="track">
+            <svg
+              id="sunpath"
+              viewBox="0 0 1000 40"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            ></svg>
+            <div id="marker" aria-hidden="true"></div>
+            <input
+              type="range"
+              id="minute"
+              aria-label="Simulation time"
+              step="1"
+            />
+          </div>
+          <div class="ticks">
+            <span id="start"></span><span id="mid"></span><span id="end"></span>
+          </div>
+          <div class="timeline-foot">
+            <span id="day-length"></span
+            ><button id="edit-site">
+              <i data-icon="pin"></i><span id="site-info"></span
+              ><i data-icon="edit"></i>
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+    <dialog id="export-dialog">
+      <form method="dialog">
+        <div class="dialog-title">
+          <h2>Export shadow GIF</h2>
+          <button
+            id="close"
+            aria-label="Close export dialog"
+            class="fit"
+            value="close"
+          >
+            <i data-icon="close"></i>
+          </button>
+        </div>
+      </form>
+      <p id="export-summary"></p>
+      <div class="form-grid">
+        <label
+          >Time step<select id="interval">
+            <option value="5">5 minutes</option>
+            <option value="10" selected>10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+          </select></label
+        ><label
+          >Frame rate<select id="fps">
+            <option>5</option>
+            <option selected>10</option>
+            <option>15</option>
+          </select></label
+        ><label
+          >Image width<select id="width">
+            <option>480</option>
+            <option selected>800</option>
+            <option>1200</option>
+          </select></label
+        >
+      </div>
+      <p id="estimate"></p>
+      <p id="progress" role="status"></p>
+      <a hidden id="gif-link">Save exported GIF</a
+      ><progress hidden max="1" value="0"></progress>
+      <div class="dialog-actions">
+        <button id="cancel" hidden>Cancel export</button
+        ><button id="save" class="primary">
+          <i data-icon="download"></i>Download GIF
+        </button>
+      </div>
+    </dialog>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
