@@ -8,6 +8,7 @@ export async function exportGif({
   times,
   width,
   fps,
+  transparent = false,
   signal,
   onFrame,
 }) {
@@ -22,27 +23,36 @@ export async function exportGif({
   canvas.height = height + footer;
   const ctx = canvas.getContext('2d', {
     willReadFrequently: true,
-    alpha: false,
+    alpha: transparent,
   });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   const gif = GIFEncoder({ auto: false });
   const frames = [];
   try {
-    field.startCapture(width, height);
+    field.startCapture(width, height, transparent);
     gif.writeHeader();
     for (const [i, minute] of times.entries()) {
       signal.throwIfAborted();
       onFrame(minute, i, times.length);
+      if (transparent) ctx.clearRect(0, 0, width, canvas.height);
       ctx.drawImage(field.canvas, 0, 0, width, height);
       ctx.save();
       ctx.translate(0, height);
       ctx.scale(captionScale, captionScale);
       ctx.fillStyle = '#203d2c';
-      ctx.fillRect(0, 0, width / captionScale, footer / captionScale);
+      if (!transparent)
+        ctx.fillRect(0, 0, width / captionScale, footer / captionScale);
       ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#203d2c';
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      const caption = (text, x, y) => {
+        if (transparent) ctx.strokeText(text, x, y);
+        ctx.fillText(text, x, y);
+      };
       ctx.font = '600 15px sans-serif';
-      ctx.fillText(
+      caption(
         study.date +
           '   ' +
           clock(minute) +
@@ -53,7 +63,7 @@ export async function exportGif({
       );
       ctx.textAlign = 'right';
       ctx.font = '12px sans-serif';
-      ctx.fillText(
+      caption(
         study.site.latitude.toFixed(2) +
           '°, ' +
           study.site.longitude.toFixed(2) +
@@ -64,9 +74,12 @@ export async function exportGif({
       ctx.restore();
       const { palette, indices } = indexFrame(
         ctx.getImageData(0, 0, width, canvas.height).data,
+        transparent,
       );
       gif.writeFrame(indices, width, canvas.height, {
         palette,
+        transparent,
+        transparentIndex: 0,
         first: i === 0,
         delay: 1000 / fps,
         repeat: 0,

@@ -39,6 +39,7 @@ export const initial = {
   row: { tables: 3, tableGap: 0.3 },
   rowPair: { pitch: 6 },
   array: { rows: 4, azimuth: 180, groupSize: 4, aisle: 3 },
+  crops: { species: 'none', rotated: false },
   site: { latitude: 32.22, longitude: -110.97, utcOffset: -7 },
   date: '2026-06-21',
 };

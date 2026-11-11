@@ -67,6 +67,18 @@ button.primary:hover {
   background: #fcfcf7;
   border-bottom: 1px solid var(--line);
 }
+.export-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+@media (max-width: 670px) {
+  .export-options {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 4px;
+  }
+}
 .brand,
 .heading,
 .side-title,

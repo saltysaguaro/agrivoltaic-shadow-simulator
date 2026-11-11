@@ -277,6 +277,7 @@ $('#save').onclick = async () => {
       study,
       times: times(),
       width: Number($('#width').value),
+      transparent: $('#transparent-gif').checked,
       fps: Number($('#fps').value),
       signal: aborter.signal,
       onFrame: (m, i, n) => {

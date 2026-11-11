@@ -1,4 +1,5 @@
 import { dimensions, racks, offsetLabel } from './model.js';
+import { crops } from './crops.js';
 import { moduleOptics } from './optics.js';
 
 export function renderControls(s, tab, open, commit) {
@@ -167,4 +168,24 @@ export function renderControls(s, tab, open, commit) {
   num('rowPair.pitch', 'Row pitch (m)', 0.5, 120);
   num('array.groupSize', 'Rows per group', 1, 24, true);
   num('array.aisle', 'Extra aisle (m)', 0, 20);
+  section('Crops', crops[s.crops.species]?.label || 'None');
+  select('crops.species', 'Crop', {
+    none: 'None',
+    ...Object.fromEntries(
+      Object.entries(crops).map(([key, crop]) => [key, crop.label]),
+    ),
+  });
+  if (s.crops.species !== 'none') {
+    field('crops.rotated', 'Rotate planting rows 90°', { type: 'checkbox' });
+    const crop = crops[s.crops.species];
+    hint(
+      s.array.rows < 2
+        ? 'Add a second PV row to show crops between rows.'
+        : 'Mature height ≈ ' +
+            crop.height.toFixed(2) +
+            ' m · Plant spacing ' +
+            crop.spacing.toFixed(2) +
+            ' m',
+    );
+  }
 }

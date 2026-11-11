@@ -2,6 +2,7 @@ import * as T from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { axes, dimensions, pose, radians } from './model.js';
+import { crops, cropLines, plantGeometry } from './crops.js';
 import { moduleOptics } from './optics.js';
 
 const up = new T.Vector3(0, 0, 1);
@@ -50,7 +51,7 @@ export class Field {
     this.onView = onView;
     this.scene = new T.Scene();
     this.scene.background = groundTone;
-    this.renderer = new T.WebGLRenderer({ antialias: true, alpha: false });
+    this.renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.canvas = this.renderer.domElement;
     this.canvas.setAttribute(
@@ -68,6 +69,9 @@ export class Field {
     this.controls.addEventListener('start', () => onView('orbit'));
     this.scene.add(new T.HemisphereLight(0xffffff, 0xb8bbae, 2.0));
     this.light = new T.DirectionalLight(0xfffae8, 1.35);
+    this.light.castShadow = true;
+    this.light.shadow.mapSize.set(2048, 2048);
+    this.light.shadow.normalBias = 0.015;
     this.scene.add(this.light);
     this.grid = new T.GridHelper(2000, 1000, 0xa9b39e, 0xbec7b3);
     this.grid.rotation.x = Math.PI / 2;
@@ -176,17 +180,15 @@ export class Field {
           color: shadowTone.clone().lerp(groundTone, trans),
           side: T.DoubleSide,
           depthWrite: false,
-          blending: T.CustomBlending,
-          blendEquation: T.MinEquation,
-          blendSrc: T.OneFactor,
-          blendDst: T.OneFactor,
           transparent: true,
         }),
         count,
       );
+      shade.material.forceSinglePass = true;
       shade.instanceMatrix = solid.instanceMatrix;
       solid.frustumCulled = shade.frustumCulled = false;
-      shade.renderOrder = 1;
+      // Draw transmissive module shadows before opaque silhouettes at the same depth.
+      shade.renderOrder = trans > 0 ? 1 : 2;
       this.hardware.add(solid);
       this.projected.add(shade);
       return solid;
@@ -229,6 +231,53 @@ export class Field {
       this.controls.target.multiplyScalar(ratio);
       this.camera.position.add(this.controls.target);
       this.controls.update();
+    }
+    const lines = cropLines(s.crops, offsets, d.rowLength, stagger, r.postSize);
+    this.renderer.shadowMap.enabled = lines.length > 0;
+    if (lines.length) {
+      const count = lines.reduce((sum, line) => sum + line.count, 0);
+      const { species, rotated } = s.crops;
+      const plants = batch(
+        plantGeometry(species, count > 1500, count > 12000),
+        new T.MeshStandardMaterial({
+          vertexColors: true,
+          side: T.DoubleSide,
+          roughness: 0.93,
+        }),
+        count,
+      );
+      // The projection supplies ground shadows. Use a depth map for hardware
+      // shading on the actual elevated foliage.
+      for (const mesh of [this.panels, this.tubes, uprights]) {
+        if (mesh) mesh.castShadow = true;
+      }
+      plants.receiveShadow = true;
+      const reach = this.radius * 1.2 + crops[species].height;
+      Object.assign(this.light.shadow.camera, {
+        left: -reach,
+        right: reach,
+        top: reach,
+        bottom: -reach,
+        near: 0.1,
+        far: 4 * reach + 100,
+      });
+      this.light.shadow.camera.updateProjectionMatrix();
+      const plant = new T.Object3D();
+      let i = 0;
+      for (const line of lines) {
+        for (let j = 0; j < line.count; j++) {
+          const distance = (j - (line.count - 1) / 2) * crops[species].spacing;
+          plant.position
+            .copy(u)
+            .multiplyScalar(line.along + (rotated ? 0 : distance))
+            .addScaledVector(v, line.across + (rotated ? distance : 0));
+          plant.rotation.z = i * 2.39996;
+          plant.scale.setScalar(1 + 0.065 * Math.sin(i * 4.71 + 0.8));
+          plant.updateMatrix();
+          plants.setMatrixAt(i++, plant.matrix);
+        }
+      }
+      plants.instanceMatrix.needsUpdate = true;
     }
     this.lastPose = null;
     this.resize();
@@ -290,7 +339,7 @@ export class Field {
       );
       this.projected.matrixWorldNeedsUpdate = true;
     }
-    this.light.position.copy(sun).multiplyScalar(100);
+    this.light.position.copy(sun).multiplyScalar(2 * this.radius + 25);
     this.light.intensity = sun.z > 0 ? 1.35 : 0;
     this.draw();
   }
@@ -313,7 +362,7 @@ export class Field {
     this.resize();
   }
   // Keep the selected frustum throughout the animation, including window resizes.
-  startCapture(width, height) {
+  startCapture(width, height, transparent = false) {
     const gl = this.renderer.getContext();
     const limit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
     if (width > limit || height > limit) {
@@ -331,6 +380,10 @@ export class Field {
       ),
     );
     this.capturePixelRatio = this.renderer.getPixelRatio();
+    if (transparent) {
+      this.scene.background = null;
+      this.grid.visible = false;
+    }
     this.renderer.setDrawingBufferSize(width, height, scale);
     if (gl.drawingBufferWidth < width || gl.drawingBufferHeight < height) {
       throw new Error(
@@ -343,6 +396,8 @@ export class Field {
     if (this.capturePixelRatio === undefined) return;
     const ratio = this.capturePixelRatio;
     this.capturePixelRatio = undefined;
+    this.scene.background = groundTone;
+    this.grid.visible = true;
     this.renderer.setDrawingBufferSize(
       this.host.clientWidth,
       this.host.clientHeight,

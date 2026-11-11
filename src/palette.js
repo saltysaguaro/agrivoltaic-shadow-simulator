@@ -1,14 +1,23 @@
 // Keep native RGB values for fine cell lines, shadow edges and antialiased type.
 // Each palette addition targets the remaining color with the largest weighted error.
-export function indexFrame(bytes) {
+export function indexFrame(bytes, transparent = false) {
   const pixels = new Uint32Array(
     bytes.buffer,
     bytes.byteOffset,
     bytes.byteLength / 4,
   );
   const histogram = new Map();
-  for (const color of pixels)
-    histogram.set(color, (histogram.get(color) || 0) + 1);
+  // GIF has binary alpha. Ignore invisible RGB and group retained edge pixels by RGB.
+  const alphaMask = new Uint32Array(Uint8Array.of(0, 0, 0, 255).buffer)[0];
+  const keyAt = transparent
+    ? (i) => (bytes[i * 4 + 3] < 128 ? 0 : (pixels[i] | alphaMask) >>> 0)
+    : (i) => pixels[i];
+  for (let i = 0; i < pixels.length; i++) {
+    const color = keyAt(i);
+    if (!transparent || color !== 0)
+      histogram.set(color, (histogram.get(color) || 0) + 1);
+  }
+  const limit = transparent ? 255 : 256;
 
   const colors = [];
   let mostFrequent = 0;
@@ -19,12 +28,12 @@ export function indexFrame(bytes) {
   }
 
   let palette;
-  if (colors.length <= 256) {
+  if (colors.length <= limit) {
     palette = colors.map(({ r, g, b }) => [r, g, b]);
   } else {
     palette = [];
     let next = colors[mostFrequent];
-    while (palette.length < 256) {
+    while (palette.length < limit) {
       const { r, g, b } = next;
       const index = palette.length;
       palette.push([r, g, b]);
@@ -44,9 +53,15 @@ export function indexFrame(bytes) {
       }
     }
   }
-  for (const color of colors) histogram.set(color.key, color.index);
+  if (transparent) {
+    palette.unshift([0, 0, 0]);
+    histogram.set(0, 0);
+    if (palette.length === 1) palette.push([0, 0, 0]);
+  }
+  for (const color of colors)
+    histogram.set(color.key, color.index + Number(transparent));
   const indices = new Uint8Array(pixels.length);
-  for (let i = 0; i < pixels.length; i++) indices[i] = histogram.get(pixels[i]);
+  for (let i = 0; i < pixels.length; i++) indices[i] = histogram.get(keyAt(i));
   return { palette, indices };
 }
 

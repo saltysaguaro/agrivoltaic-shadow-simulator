@@ -17,10 +17,10 @@ Open the local URL printed by Vite. Run `npm test` for model checks and `npm run
 
 ## Design and animate
 
-1. In **System**, choose fixed tilt, single-axis tracking, dual-axis tracking, vertical bifacial, or a raised pergola. Set module dimensions, cell construction, axis height, post width, table orientation, modules per table, pitch, row grouping, aisles, and azimuth. The tracker settings include rotation limits and single-axis backtracking. Pergola rows can be aligned or staggered.
+1. In **System**, choose fixed tilt, single-axis tracking, dual-axis tracking, vertical bifacial, or a raised pergola. Set module dimensions, cell construction, axis height, post width, table orientation, modules per table, pitch, row grouping, aisles, and azimuth. The tracker settings include rotation limits and single-axis backtracking. Pergola rows can be aligned or staggered. Under **Crops**, choose tomato, zucchini, potato, lettuce, or corn. One planting line runs through the center of each aisle between PV rows. **Rotate planting rows 90°** fits the same number of planting lines across the array, with breaks at the PV support lines.
 2. In **Site & day**, enter the latitude, longitude, date, and UTC offset for that date. Longitude is positive east. For example, Tucson uses UTC−7 year-round. The timeline covers the first through last above-horizon minute on that local date.
 3. Switch between **3D**, **Plan**, and **Profile**. Drag to orbit, right-drag to pan, and scroll or pinch to zoom. The reset button fits the array to the selected preset. Scrub the timeline or select **Play day**.
-4. Select **Export GIF**, then choose the simulated time between frames, output width, and playback frame rate. Frames render at the selected width (up to 3840 px), independently of the preview size. Each frame keeps its original colors when they fit in a GIF palette, or uses up to 256 representative colors. The looping animation uses the current camera and includes the local date, time, UTC offset, and coordinates. Near-horizon shadows can extend outside the current view.
+4. For a transparent overlay, check **Transparent background** beside **Export GIF**. The grid, ground color, and caption background disappear from the GIF. The hardware, crops, moving shadows, and timestamp remain visible. Select **Export GIF**, then choose the simulated time between frames, output width, and playback frame rate. Frames render at the selected width (up to 3840 px), independently of the preview size. Each frame keeps its original colors when they fit in a GIF palette, or uses up to 256 representative colors. The looping animation uses the current camera and includes the local date, time, UTC offset, and coordinates. Near-horizon shadows can extend outside the current view.
 
 ## Publish on GitHub Pages
 
@@ -33,6 +33,8 @@ The production build uses relative asset paths and works under a repository subd
 ## Model and attribution
 
 Solar direction uses the experiment designer's NOAA fractional-year approximation and a geometric horizon. Modules, posts, and tubes project along that direction onto flat ground. Tracking poses update at each simulated time. Single-axis and vertical rows run north–south. Group aisles add spacing between groups, and checkerboard pergolas offset alternating rows by half a module pitch. Clearance checks increase axis height, row pitch, or table gap where needed.
+
+Crop models depict representative mature plants with fixed heights and within-row spacing in metres. The models use a bush tomato, bush zucchini, potato foliage, a lettuce rosette, and tasseling sweet corn. Plant spacing is informed by [University of Minnesota Extension’s vegetable field planning guide](https://extension.umn.edu/vegetable-growing-guides-farmers/crop-and-field-planning-tools-vegetable-farmers).
 
 Bifacial gap width, cell count, perimeter, and laminate transmission determine area-averaged broadband and PAR transmission. The drawing uses broadband transmission to lighten the module shadow. Overlapping silhouettes display the darkest caster. Ground shade represents geometric coverage. The simulator does not calculate weather-dependent irradiance, diffuse light, crop response, or electrical yield.
 
