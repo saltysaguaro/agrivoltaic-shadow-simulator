@@ -22,17 +22,20 @@ export function cropLines(settings, offsets, rowLength, stagger, postSize) {
     if (count > 0) lines.push({ along, across, count });
   }
   for (let i = 1; i < offsets.length; i++) {
-    const midpoint = (offsets[i - 1] + offsets[i]) / 2;
-    if (settings.rotated) {
-      // Turn the row pattern across the shared footprint, leaving a break at
-      // each PV support line. This also fits very long or very narrow arrays.
-      const along = (0.5 - midpoint / span) * length;
+    const gap = offsets[i] - offsets[i - 1];
+    for (const fraction of [0.25, 0.5, 0.75]) {
+      const position = offsets[i - 1] + fraction * gap;
+      if (!settings.rotated) {
+        add(0, position - span / 2, length);
+        continue;
+      }
+      // Rotate the planting pattern into the shared footprint and leave a
+      // break at every PV support line.
+      const along = (0.5 - position / span) * length;
       for (let j = 1; j < offsets.length; j++) {
         const across = (offsets[j - 1] + offsets[j] - span) / 2;
         add(along, across, offsets[j] - offsets[j - 1] - postSize);
       }
-    } else {
-      add(0, midpoint - span / 2, length);
     }
   }
   return lines;

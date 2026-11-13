@@ -346,25 +346,12 @@ dialog p {
   font-size: 26px;
   color: #a07227;
 }
-.compass {
+.field .compass {
   right: 17px;
   top: 15px;
   width: 38px;
   height: 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
   pointer-events: none;
-  font-size: 10px;
-  color: #294531;
-}
-.compass span {
-  height: 26px;
-  width: 13px;
-  transform: rotate(var(--north));
-  background: linear-gradient(90deg, #314f3e 50%, #a2b59c 50%);
-  clip-path: polygon(50% 0, 100% 100%, 50% 77%, 0 100%);
 }
 .legend {
   bottom: 14px;

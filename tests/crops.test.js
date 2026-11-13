@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { crops, cropLines, plantGeometry } from '../src/crops.js';
 
-test('single crop rows bisect actual aisles and fit the shared staggered length', () => {
+test('three crop rows divide each actual aisle into quarters and fit the shared staggered length', () => {
   const lines = cropLines({ species: 'lettuce' }, [0, 6, 15, 21], 11, 1, 0.12);
   assert.deepEqual(
     lines.map(({ along, across }) => [along, across]),
     [
-      [0, -7.5],
-      [0, 0],
-      [0, 7.5],
+      [0, -9], [0, -7.5], [0, -6],
+      [0, -2.25], [0, 0], [0, 2.25],
+      [0, 6], [0, 7.5], [0, 9],
     ],
   );
   assert.ok(lines.every((line) => line.count === 33));
@@ -31,10 +31,12 @@ test('perpendicular crop rows span the corridors and break at each support line'
       count,
     ]),
     [
-      [9, -4.5, 9],
-      [9, 3, 14],
-      [-6, -4.5, 9],
-      [-6, 3, 14],
+      [12, -4.5, 9], [12, 3, 14],
+      [9, -4.5, 9], [9, 3, 14],
+      [6, -4.5, 9], [6, 3, 14],
+      [-1.5, -4.5, 9], [-1.5, 3, 14],
+      [-6, -4.5, 9], [-6, 3, 14],
+      [-10.5, -4.5, 9], [-10.5, 3, 14],
     ],
   );
 });

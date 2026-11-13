@@ -1,4 +1,5 @@
 import { GIFEncoder } from 'gifenc';
+import { drawCompass } from './compass.js';
 import { clock, offsetLabel } from './model.js';
 import { indexFrame } from './palette.js';
 
@@ -37,6 +38,7 @@ export async function exportGif({
       onFrame(minute, i, times.length);
       if (transparent) ctx.clearRect(0, 0, width, canvas.height);
       ctx.drawImage(field.canvas, 0, 0, width, height);
+      drawCompass(ctx, width - 17 * captionScale, 15 * captionScale, captionScale, field.northAngle);
       ctx.save();
       ctx.translate(0, height);
       ctx.scale(captionScale, captionScale);

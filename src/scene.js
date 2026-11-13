@@ -2,6 +2,7 @@ import * as T from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { axes, dimensions, pose, radians } from './model.js';
+import { drawCompass } from './compass.js';
 import { crops, cropLines, plantGeometry } from './crops.js';
 import { moduleOptics } from './optics.js';
 
@@ -48,6 +49,7 @@ function panelTexture(s) {
 export class Field {
   constructor(host, onView) {
     this.host = host;
+    this.compass = host.querySelector('.compass').getContext('2d');
     this.onView = onView;
     this.scene = new T.Scene();
     this.scene.background = groundTone;
@@ -428,9 +430,12 @@ export class Field {
     const north = new T.Vector3(0, 1, 0).applyQuaternion(
       this.camera.quaternion.clone().invert(),
     );
-    this.host.style.setProperty(
-      '--north',
-      Math.atan2(north.x, north.y) + 'rad',
-    );
+    const angle = Math.atan2(north.x, north.y);
+    if (angle !== this.northAngle) {
+      this.northAngle = angle;
+      const { width, height } = this.compass.canvas;
+      this.compass.clearRect(0, 0, width, height);
+      drawCompass(this.compass, width, 0, width / 38, angle);
+    }
   }
 }
