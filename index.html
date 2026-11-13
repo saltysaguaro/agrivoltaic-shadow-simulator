@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#193e32" />
     <meta
       name="description"
-      content="Design an agrivoltaic array, explore its shadows through a single day, and export a looping GIF."
+      content="Design an agrivoltaic array, explore its shadows through a single day, and export a still PNG or looping GIF."
     />
     <title>Agrivoltaic Shadow Simulator</title>
     <link
@@ -38,6 +38,7 @@
           ><input id="transparent-gif" type="checkbox" />Transparent
           background</label
         >
+        <button id="export-png"><i data-icon="download"></i>Export PNG</button>
         <button class="primary" id="export">
           <i data-icon="download"></i>Export GIF
         </button>
@@ -150,7 +151,7 @@
     <dialog id="export-dialog">
       <form method="dialog">
         <div class="dialog-title">
-          <h2>Export shadow GIF</h2>
+          <h2 id="export-title">Export shadow GIF</h2>
           <button
             id="close"
             aria-label="Close export dialog"
@@ -190,12 +191,12 @@
       </div>
       <p id="estimate"></p>
       <p id="progress" role="status"></p>
-      <a hidden id="gif-link">Save exported GIF</a
+      <a hidden id="export-link">Save exported GIF</a
       ><progress hidden max="1" value="0"></progress>
       <div class="dialog-actions">
         <button id="cancel" hidden>Cancel export</button
         ><button id="save" class="primary">
-          <i data-icon="download"></i>Download GIF
+          <i data-icon="download"></i><span id="download-label">Download GIF</span>
         </button>
       </div>
     </dialog>

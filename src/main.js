@@ -15,7 +15,7 @@ import {
   offsetLabel,
 } from './model.js';
 import { renderControls } from './controls.js';
-import { exportGif } from './export.js';
+import { exportGif, exportPng } from './export.js';
 const $ = (s) => document.querySelector(s);
 let study = structuredClone(initial),
   minute = 540,
@@ -37,7 +37,7 @@ try {
     e.preventDefault();
     aborter?.abort();
     stop();
-    $('#export').disabled = true;
+    $('#export').disabled = $('#export-png').disabled = true;
     $('#render-error').hidden = false;
     $('#render-error').textContent =
       'Graphics context lost. Reload this page to restore the array view.';
@@ -46,7 +46,7 @@ try {
   $('#render-error').hidden = false;
   $('#render-error').textContent =
     'This view needs WebGL 2. Enable hardware acceleration or open the simulator in a WebGL-capable browser.';
-  $('#export').disabled = true;
+  $('#export').disabled = $('#export-png').disabled = true;
 }
 function displayTime(t) {
   minute = t;
@@ -218,13 +218,14 @@ $('#minute').oninput = (e) => {
   displayTime(Number(e.target.value));
 };
 const dialog = $('#export-dialog');
-function clearGifLink() {
-  const link = $('#gif-link');
+let exportFormat = 'GIF';
+function clearExportLink() {
+  const link = $('#export-link');
   if (link.hasAttribute('href')) URL.revokeObjectURL(link.href);
   link.removeAttribute('href');
   link.hidden = true;
 }
-dialog.addEventListener('close', clearGifLink);
+dialog.addEventListener('close', clearExportLink);
 function times() {
   return frameTimes(bounds.start, bounds.end, Number($('#interval').value));
 }
@@ -236,21 +237,28 @@ function estimate() {
     (count / Number($('#fps').value)).toFixed(1) +
     ' seconds · looping GIF';
 }
-$('#export').onclick = () => {
+function openExport(format) {
+  exportFormat = format;
+  const still = format === 'PNG';
+  $('#export-title').textContent = 'Export shadow ' + format;
+  $('#download-label').textContent = 'Download ' + format;
+  $('#interval').closest('label').hidden = still;
+  $('#fps').closest('label').hidden = still;
+  $('#estimate').hidden = still;
   stop();
   $('#progress').textContent = '';
   $('#export-summary').textContent =
     study.date +
     ' · ' +
-    clock(bounds.start) +
-    '–' +
-    clock(bounds.end) +
+    (still ? clock(minute) : clock(bounds.start) + '–' + clock(bounds.end)) +
     ' ' +
     offsetLabel(study.site.utcOffset) +
     ' · current camera view';
-  estimate();
+  if (!still) estimate();
   dialog.showModal();
-};
+}
+$('#export').onclick = () => openExport('GIF');
+$('#export-png').onclick = () => openExport('PNG');
 $('#interval').onchange = $('#fps').onchange = estimate;
 dialog.addEventListener('cancel', (e) => {
   if (aborter) {
@@ -261,39 +269,47 @@ dialog.addEventListener('cancel', (e) => {
 $('#cancel').onclick = () => aborter?.abort();
 $('#save').onclick = async () => {
   if (aborter || !field) return;
-  clearGifLink();
+  clearExportLink();
   const saved = minute;
   aborter = new AbortController();
   const bar = $('progress');
-  bar.hidden = false;
+  const still = exportFormat === 'PNG';
+  bar.hidden = still;
   bar.value = 0;
-  $('#cancel').hidden = false;
+  $('#cancel').hidden = still;
   dialog
     .querySelectorAll('select,#save,#close')
     .forEach((el) => (el.disabled = true));
   try {
-    const blob = await exportGif({
+    const options = {
       field,
       study,
-      times: times(),
       width: Number($('#width').value),
       transparent: $('#transparent-gif').checked,
-      fps: Number($('#fps').value),
-      signal: aborter.signal,
-      onFrame: (m, i, n) => {
-        displayTime(m);
-        bar.value = (i + 1) / n;
-        $('#progress').textContent =
-          'Rendering frame ' + (i + 1) + ' of ' + n + '…';
-      },
-    });
-    const url = URL.createObjectURL(blob),
-      a = $('#gif-link');
-    a.href = url;
-    a.download = 'agrivoltaic-shadows-' + study.date + '.gif';
-    a.hidden = false;
-    a.click();
-    $('#progress').textContent = 'GIF exported.';
+    };
+    const blob = still
+      ? await exportPng({ ...options, minute: saved })
+      : await exportGif({
+          ...options,
+          times: times(),
+          fps: Number($('#fps').value),
+          signal: aborter.signal,
+          onFrame: (m, i, n) => {
+            displayTime(m);
+            bar.value = (i + 1) / n;
+            $('#progress').textContent =
+              'Rendering frame ' + (i + 1) + ' of ' + n + '…';
+          },
+        });
+    aborter.signal.throwIfAborted();
+    const link = $('#export-link');
+    link.href = URL.createObjectURL(blob);
+    const suffix = still ? '-' + clock(saved).replace(':', '-') + '.png' : '.gif';
+    link.download = 'agrivoltaic-shadows-' + study.date + suffix;
+    link.textContent = 'Save exported ' + exportFormat;
+    link.hidden = false;
+    link.click();
+    $('#progress').textContent = exportFormat + ' exported.';
   } catch (e) {
     $('#progress').textContent =
       e.name === 'AbortError'

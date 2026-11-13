@@ -73,10 +73,13 @@ button.primary:hover {
   gap: 12px;
 }
 @media (max-width: 670px) {
+  .mast {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .export-options {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 .brand,
@@ -634,7 +637,7 @@ dialog progress {
     font-size: 10px;
   }
 }
-#gif-link {
+#export-link {
   display: inline-block;
   color: var(--pine);
   font-weight: 600;

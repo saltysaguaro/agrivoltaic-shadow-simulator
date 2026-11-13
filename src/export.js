@@ -3,16 +3,7 @@ import { drawCompass } from './compass.js';
 import { clock, offsetLabel } from './model.js';
 import { indexFrame } from './palette.js';
 
-export async function exportGif({
-  field,
-  study,
-  times,
-  width,
-  fps,
-  transparent = false,
-  signal,
-  onFrame,
-}) {
+function createExportFrame(field, study, width, transparent, readPixels = false) {
   const height = Math.max(
     1,
     Math.round((width * field.canvas.height) / field.canvas.width),
@@ -23,11 +14,84 @@ export async function exportGif({
   canvas.width = width;
   canvas.height = height + footer;
   const ctx = canvas.getContext('2d', {
-    willReadFrequently: true,
+    willReadFrequently: readPixels,
     alpha: transparent,
   });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
+  function draw(minute) {
+    if (transparent) ctx.clearRect(0, 0, width, canvas.height);
+    ctx.drawImage(field.canvas, 0, 0, width, height);
+    drawCompass(
+      ctx, width - 17 * captionScale, 15 * captionScale, captionScale, field.northAngle,
+    );
+    ctx.save();
+    ctx.translate(0, height);
+    ctx.scale(captionScale, captionScale);
+    ctx.fillStyle = '#203d2c';
+    if (!transparent)
+      ctx.fillRect(0, 0, width / captionScale, footer / captionScale);
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#203d2c';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    const caption = (text, x, y) => {
+      if (transparent) ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
+    };
+    ctx.font = '600 15px sans-serif';
+    caption(
+      study.date +
+        '   ' +
+        clock(minute) +
+        '  ' +
+        offsetLabel(study.site.utcOffset),
+      12,
+      24,
+    );
+    ctx.textAlign = 'right';
+    ctx.font = '12px sans-serif';
+    caption(
+      study.site.latitude.toFixed(2) +
+        '°, ' +
+        study.site.longitude.toFixed(2) +
+        '°',
+      width / captionScale - 12,
+      24,
+    );
+    ctx.restore();
+  }
+  return { canvas, ctx, height, draw };
+}
+
+export async function exportPng({ field, study, width, transparent, minute }) {
+  const frame = createExportFrame(field, study, width, transparent);
+  try {
+    field.startCapture(width, frame.height, transparent);
+    field.draw();
+    frame.draw(minute);
+  } finally {
+    field.endCapture();
+  }
+  return new Promise((resolve, reject) => {
+    frame.canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('The browser could not encode the PNG.'));
+    }, 'image/png');
+  });
+}
+
+export async function exportGif({
+  field,
+  study,
+  times,
+  width,
+  fps,
+  transparent = false,
+  signal,
+  onFrame,
+}) {
+  const { canvas, ctx, height, draw } = createExportFrame(field, study, width, transparent, true);
   const gif = GIFEncoder({ auto: false });
   const frames = [];
   try {
@@ -36,44 +100,7 @@ export async function exportGif({
     for (const [i, minute] of times.entries()) {
       signal.throwIfAborted();
       onFrame(minute, i, times.length);
-      if (transparent) ctx.clearRect(0, 0, width, canvas.height);
-      ctx.drawImage(field.canvas, 0, 0, width, height);
-      drawCompass(ctx, width - 17 * captionScale, 15 * captionScale, captionScale, field.northAngle);
-      ctx.save();
-      ctx.translate(0, height);
-      ctx.scale(captionScale, captionScale);
-      ctx.fillStyle = '#203d2c';
-      if (!transparent)
-        ctx.fillRect(0, 0, width / captionScale, footer / captionScale);
-      ctx.fillStyle = '#fff';
-      ctx.strokeStyle = '#203d2c';
-      ctx.lineWidth = 2.5;
-      ctx.lineJoin = 'round';
-      const caption = (text, x, y) => {
-        if (transparent) ctx.strokeText(text, x, y);
-        ctx.fillText(text, x, y);
-      };
-      ctx.font = '600 15px sans-serif';
-      caption(
-        study.date +
-          '   ' +
-          clock(minute) +
-          '  ' +
-          offsetLabel(study.site.utcOffset),
-        12,
-        24,
-      );
-      ctx.textAlign = 'right';
-      ctx.font = '12px sans-serif';
-      caption(
-        study.site.latitude.toFixed(2) +
-          '°, ' +
-          study.site.longitude.toFixed(2) +
-          '°',
-        width / captionScale - 12,
-        24,
-      );
-      ctx.restore();
+      draw(minute);
       const { palette, indices } = indexFrame(
         ctx.getImageData(0, 0, width, canvas.height).data,
         transparent,
